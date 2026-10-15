@@ -54,7 +54,10 @@ bool AW88399Fixup::start(IOService *provider)
     }
 
     mDebug = bootArgPresent("aw88399dbg");
-    mReadOnly = bootArgPresent("aw88399ro");
+    // -aw88399ro runs the bring-up without writing anything.  -aw88399rw overrides it,
+    // which matters when the kext is loaded by hand (kextload) instead of at boot: the
+    // boot-args of the running system cannot be changed without a reboot.
+    mReadOnly = bootArgPresent("aw88399ro") && !bootArgPresent("aw88399rw");
     if (bootArgPresent("aw88399nodsp")) {
         mForceNoDsp = true;
     }

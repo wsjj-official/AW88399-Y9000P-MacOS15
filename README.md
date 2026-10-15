@@ -42,6 +42,7 @@ macOS 侧的工程骨架参考 [`hoaug-tran/CirrusAudioFixup`](https://github.co
 |---|---|
 | `-aw88399dbg` | 详细日志 |
 | `-aw88399ro` | 只读模式：只读寄存器，绝不写（最安全的第一次上机） |
+| `-aw88399rw` | 覆盖 `-aw88399ro`，强制写入模式（用于手动 `kextload` 时免重启切换） |
 | `-aw88399nodsp` | 强制 DSP 旁路模式（M1 默认就是这个） |
 | `-aw88399delay=N` | 启动后延迟 N 秒再动 I2C（默认 5，给 VoodooI2C/电源管理留时间） |
 

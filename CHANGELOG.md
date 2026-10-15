@@ -23,3 +23,9 @@ First public scaffold (milestone M0/M1a).
   (the other of `0x34`/`0x35`) needs controller-level transfers (`VoodooI2CControllerDriver::transferI2C`).
 - No DSP/ACF download yet (M2), no `_DSM` calibration, no GPIO reset, no fault IRQ.
 - Not yet validated on hardware.
+
+## [0.1.1] - 2026-10-15
+
+### Added
+- `-aw88399rw` boot-arg: overrides `-aw88399ro` so a hand-loaded kext (`kextload`) can be
+  switched to write mode without rebooting (the running kernel's boot-args cannot change).
