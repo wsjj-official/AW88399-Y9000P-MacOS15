@@ -43,22 +43,28 @@ bool bootArgPresent(const char *name)
 // PE_parse_boot_argn() matches by prefix, so "-aw88399ro" also satisfies a query for
 // "aw88399rw" (0.1.2 shipped with that bug and wrote to the amplifier even though
 // -aw88399ro was set).  Read the boot-args string and match whole tokens instead.
+// Only libkern's strlen/strncmp are available in the kernel - strstr is not declared.
 bool bootArgsContain(const char *flag)
 {
     char args[1024] = {0};
     if (!PE_parse_boot_argn("boot-args", args, sizeof(args))) {
         return false;
     }
-    size_t length = strlen(flag);
-    const char *cursor = args;
-    while ((cursor = strstr(cursor, flag)) != nullptr) {
-        bool leftOk = (cursor == args) || (cursor[-1] == ' ') || (cursor[-1] == '-');
-        char next = cursor[length];
-        bool rightOk = (next == '\0') || (next == ' ');
-        if (leftOk && rightOk) {
+    size_t flagLength = strlen(flag);
+    if (flagLength == 0) {
+        return false;
+    }
+    for (const char *cursor = args; *cursor != '\0'; ++cursor) {
+        if ((cursor != args) && (cursor[-1] != ' ') && (cursor[-1] != '-')) {
+            continue;
+        }
+        if (strncmp(cursor, flag, flagLength) != 0) {
+            continue;
+        }
+        char next = cursor[flagLength];
+        if (next == '\0' || next == ' ') {
             return true;
         }
-        cursor += length;
     }
     return false;
 }
