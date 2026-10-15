@@ -343,3 +343,4 @@ void AW88399Fixup::free()
 {
     super::free();
 }
+
