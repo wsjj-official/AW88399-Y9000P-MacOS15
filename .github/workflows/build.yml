@@ -63,6 +63,16 @@ jobs:
               | grep -i -E 'VoodooI2C|writeReadI2C|writeI2C' || true
           done
 
+      - name: Ad-hoc sign the kexts
+        run: |
+          for cfg in Release Debug; do
+            echo "--- ${cfg} ---"
+            codesign --force --deep --sign - --timestamp=none \
+              "${GITHUB_WORKSPACE}/build/${cfg}/AW88399Fixup.kext"
+            codesign --verify --verbose=2 \
+              "${GITHUB_WORKSPACE}/build/${cfg}/AW88399Fixup.kext" || true
+          done
+
       - name: Package kext bundles
         run: |
           cd "${GITHUB_WORKSPACE}/build/Release"

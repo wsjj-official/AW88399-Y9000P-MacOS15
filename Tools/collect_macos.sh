@@ -149,6 +149,16 @@ else
   sudo chown -R 0:0 "$KEXT" 2>&1
   sudo chmod -R go-w "$KEXT" 2>&1
   ls -ld "$KEXT" "$KEXT/Contents"
+  echo "--- 顺带做个 ad-hoc 签名（SecureBootModel 已禁用，只是排除签名因素）---"
+  sudo codesign --force --deep --sign - "$KEXT" 2>&1 | head -5
+  echo "--- kextutil -v 6 诊断（不加载，只做校验；真正原因会写在这里）---"
+  if command -v kextutil >/dev/null 2>&1; then
+    sudo kextutil -v 6 -t "$KEXT" 2>&1 | grep -v -E '^Kext file|^Checking|^ *$' | head -40
+    echo "--- kextutil -v 6 正式加载 ---"
+    sudo kextutil -v 6 "$KEXT" 2>&1 | tail -25
+  else
+    echo "(系统里没有 kextutil)"
+  fi
   echo "--- kextload 输出 ---"
   sudo kextload "$KEXT" 2>&1 | head -25
   sleep 3
@@ -182,6 +192,8 @@ echo "蓝牙相关 kext:"
 kmutil showloaded 2>/dev/null | grep -i -E 'IntelBluetooth|BlueToolFixup' | sed 's/^/    /' || echo "    ❌ 蓝牙 kext 没加载"
 echo "蓝牙控制器:"
 system_profiler SPBluetoothDataType 2>/dev/null | head -20 | sed 's/^/    /'
+echo "已配对的蓝牙设备:"
+system_profiler SPBluetoothDataType 2>/dev/null | sed -n '/Connected:/,/Not Connected:/p' | head -20 | sed 's/^/    /'
 echo "USB 上的蓝牙设备（VID 8087）:"
 system_profiler SPUSBDataType 2>/dev/null | grep -i -B3 -A6 -E '8087|bluetooth' | head -30 | sed 's/^/    /'
 echo "蓝牙报错（最近 10 分钟）:"

@@ -29,3 +29,12 @@ First public scaffold (milestone M0/M1a).
 ### Added
 - `-aw88399rw` boot-arg: overrides `-aw88399ro` so a hand-loaded kext (`kextload`) can be
   switched to write mode without rebooting (the running kernel's boot-args cannot change).
+
+## [0.1.2] - 2026-10-15
+
+### Fixed
+- Declare the real dependency (`com.alexandred.VoodooI2C`) in `OSBundleLibraries`; the kext
+  calls `VoodooI2CDeviceNub` methods but never declared the provider, which is one candidate
+  for both the failed OpenCore injection and the `KMErrorDomain Code=71` manual load.
+- CI now ad-hoc signs the kext (`codesign --force --deep -s -`) so a signature is present
+  even though `SecureBootModel` is disabled.
