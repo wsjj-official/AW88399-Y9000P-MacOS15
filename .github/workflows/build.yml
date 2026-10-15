@@ -1,0 +1,131 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show build environment
+        run: |
+          sw_vers
+          xcodebuild -version | head -1
+          python3 --version
+
+      - name: Host-side checks (generates the register + firmware headers)
+        run: python3 Tests/check_repo.py
+
+      - name: Build Release kext
+        run: |
+          xcodebuild \
+            -project AW88399Fixup.xcodeproj \
+            -target AW88399Fixup \
+            -configuration Release \
+            -sdk macosx \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO \
+            CONFIGURATION_BUILD_DIR="${GITHUB_WORKSPACE}/build/Release" \
+            build
+
+      - name: Build Debug kext
+        run: |
+          xcodebuild \
+            -project AW88399Fixup.xcodeproj \
+            -target AW88399Fixup \
+            -configuration Debug \
+            -sdk macosx \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO \
+            CONFIGURATION_BUILD_DIR="${GITHUB_WORKSPACE}/build/Debug" \
+            build
+
+      - name: Verify build artifacts
+        run: |
+          for cfg in Release Debug; do
+            echo "--- ${cfg} ---"
+            ls -l "${GITHUB_WORKSPACE}/build/${cfg}/"
+            file "${GITHUB_WORKSPACE}/build/${cfg}/AW88399Fixup.kext/Contents/MacOS/AW88399Fixup"
+            echo "--- exported symbols (I2C calls expected) ---"
+            nm -u "${GITHUB_WORKSPACE}/build/${cfg}/AW88399Fixup.kext/Contents/MacOS/AW88399Fixup" \
+              | grep -i -E 'VoodooI2C|writeReadI2C|writeI2C' || true
+          done
+
+      - name: Package kext bundles
+        run: |
+          cd "${GITHUB_WORKSPACE}/build/Release"
+          zip -qry "${GITHUB_WORKSPACE}/AW88399Fixup-RELEASE.zip" AW88399Fixup.kext
+          cd "${GITHUB_WORKSPACE}/build/Debug"
+          zip -qry "${GITHUB_WORKSPACE}/AW88399Fixup-DEBUG.zip" AW88399Fixup.kext
+          cd "${GITHUB_WORKSPACE}"
+          ls -lh AW88399Fixup-*.zip
+
+      - name: Upload Release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AW88399Fixup-RELEASE-${{ github.sha }}
+          path: AW88399Fixup-RELEASE.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload Debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AW88399Fixup-DEBUG-${{ github.sha }}
+          path: AW88399Fixup-DEBUG.zip
+          retention-days: 30
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AW88399Fixup-RELEASE-${{ github.sha }}
+          path: dist
+
+      - name: Download Debug artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AW88399Fixup-DEBUG-${{ github.sha }}
+          path: dist
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AW88399Fixup ${{ github.ref_name }}
+          body: |
+            Automated build of AW88399Fixup ${{ github.ref_name }}.
+
+            Install: drop `AW88399Fixup.kext` into `EFI/OC/Kexts/` and add it to
+            `config.plist -> Kernel -> Add` **after** `VoodooI2C.kext`.
+            First boot: add `-aw88399ro` to `boot-args` to run in read-only mode.
+          files: |
+            dist/AW88399Fixup-RELEASE.zip
+            dist/AW88399Fixup-DEBUG.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

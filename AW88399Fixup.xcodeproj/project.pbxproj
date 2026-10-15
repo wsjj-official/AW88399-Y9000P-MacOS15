@@ -1,0 +1,239 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+		CAFE00000011  = {
+			isa = PBXBuildFile;
+			fileRef = CAFE00000001 ;
+		};
+		CAFE00000001  = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = AW88399Fixup.cpp;
+			sourceTree = "<group>";
+		};
+		CAFE00000002  = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.h;
+			path = AW88399Fixup.hpp;
+			sourceTree = "<group>";
+		};
+		CAFE00000003  = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = Info.plist;
+			sourceTree = "<group>";
+		};
+		CAFE00000005  = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.cfbundle;
+			includeInIndex = 0;
+			path = AW88399Fixup.kext;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		CAFE00000031  = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAFE00000020  = {
+			isa = PBXGroup;
+			children = (
+				CAFE00000021 ,
+				CAFE00000023 ,
+			);
+			sourceTree = "<group>";
+		};
+		CAFE00000021  = {
+			isa = PBXGroup;
+			children = (
+				CAFE00000001 ,
+				CAFE00000002 ,
+				CAFE00000003 ,
+			);
+			name = AW88399Fixup;
+			path = Sources/AW88399Fixup;
+			sourceTree = "<group>";
+		};
+		CAFE00000023  = {
+			isa = PBXGroup;
+			children = (
+				CAFE00000005 ,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CAFE00000040  = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAFE00000061;
+			buildPhases = (
+				CAFE00000030 ,
+				CAFE00000031 ,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AW88399Fixup;
+			productName = AW88399Fixup;
+			productReference = CAFE00000005 ;
+			productType = "com.apple.product-type.kernel-extension";
+		};
+		CAFE00000050  = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					CAFE00000040 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = CAFE00000060;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CAFE00000020;
+			productRefGroup = CAFE00000023 ;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CAFE00000040 ,
+			);
+		};
+		CAFE00000030  = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAFE00000011 ,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAFE00000070  = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/Sources/AW88399Fixup";
+				ARCHS = x86_64;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		CAFE00000071  = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/Sources/AW88399Fixup";
+				ARCHS = x86_64;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		CAFE00000072  = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = x86_64;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_STYLE = Manual;
+				DEAD_CODE_STRIPPING = NO;
+				GCC_ENABLE_CPP_EXCEPTIONS = NO;
+				GCC_ENABLE_CPP_RTTI = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				INFOPLIST_FILE = Sources/AW88399Fixup/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				MODULE_NAME = com.github.wsjj-official.AW88399Fixup;
+				MODULE_VERSION = 1;
+				OTHER_CFLAGS = (
+					"-DDEBUG=1",
+					"-DKERNEL",
+					"-DKERNEL_PRIVATE",
+					"-DDRIVER_PRIVATE",
+					"-DAPPLE",
+					"-DNeXT",
+				);
+				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
+				OTHER_LDFLAGS = (
+					"-lkmod",
+					"-lcc_kext",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.wsjj-official.AW88399Fixup;
+				PRODUCT_NAME = AW88399Fixup;
+				SDKROOT = macosx;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug;
+		};
+		CAFE00000073  = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = x86_64;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_STYLE = Manual;
+				DEAD_CODE_STRIPPING = NO;
+				GCC_ENABLE_CPP_EXCEPTIONS = NO;
+				GCC_ENABLE_CPP_RTTI = NO;
+				GCC_OPTIMIZATION_LEVEL = s;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				INFOPLIST_FILE = Sources/AW88399Fixup/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				MODULE_NAME = com.github.wsjj-official.AW88399Fixup;
+				MODULE_VERSION = 1;
+				OTHER_CFLAGS = (
+					"-DKERNEL",
+					"-DKERNEL_PRIVATE",
+					"-DDRIVER_PRIVATE",
+					"-DAPPLE",
+					"-DNeXT",
+				);
+				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
+				OTHER_LDFLAGS = (
+					"-lkmod",
+					"-lcc_kext",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.wsjj-official.AW88399Fixup;
+				PRODUCT_NAME = AW88399Fixup;
+				SDKROOT = macosx;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
+		CAFE00000060  = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAFE00000070 ,
+				CAFE00000071 ,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CAFE00000061  = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAFE00000072 ,
+				CAFE00000073 ,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+	};
+	rootObject = CAFE00000050 ;
+}

@@ -1,0 +1,6 @@
+# Keep LF everywhere: the CI builds on macOS and the tooling is Python/shell.
+* text=auto eol=lf
+
+# Binaries
+*.bin binary
+*.kext binary
