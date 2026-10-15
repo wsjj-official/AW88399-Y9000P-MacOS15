@@ -184,24 +184,38 @@ if [ -n "$ALC" ]; then
       "$("$ALC" "$nid" GET_PIN_WIDGET_CONTROL 0 2>&1 | tail -1)" \
       "$("$ALC" "$nid" GET_AMP_GAIN_MUTE 0x8000 2>&1 | tail -1)"
   done
-  echo "--- 0x17 的连接列表（找 DAC 0x02 的索引）---"
-  "$ALC" 0x17 GET_CONNECT_LIST 0 2>&1 | tail -1
-  echo "--- 把 0x17（=低音/功放那一路）按 Linux 的做法接回 DAC 0x02 并打开 ---"
-  echo "    （Linux 侧 alc287_fixup_legion_16iax_aw88399 是空函数，但 AudioLegion 补丁"
-  echo "      明确写了：0x17 原来接在没有音量控制的 DAC 0x06 上，要改接 DAC 0x02）"
-  echo "    请先输入 DAC 0x02 在连接列表里的索引（上面那行的第几个，从 0 数；不确定就回车跳过）"
-  read -r SEL
-  if [ -n "$SEL" ]; then
-    "$ALC" 0x17 SET_CONNECT_SEL "$SEL" 2>&1 | tail -1
-  fi
-  "$ALC" 0x17 SET_PIN_WIDGET_CONTROL 0x40 2>&1 | tail -1
-  "$ALC" 0x17 SET_EAPD_BTLENABLE 0x02 2>&1 | tail -1
-  "$ALC" 0x17 SET_AMP_GAIN_MUTE 0x807F 2>&1 | tail -1
-  echo "--- 再读一遍 ---"
-  printf '  NID 0x17: pin=%s amp=%s\n' \
-    "$("$ALC" 0x17 GET_PIN_WIDGET_CONTROL 0 2>&1 | tail -1)" \
-    "$("$ALC" 0x17 GET_AMP_GAIN_MUTE 0x8000 2>&1 | tail -1)"
-  echo "  音频此刻请播一下音乐，听听低音/音量有没有变化。"
+  # 0x17 is the woofer/amplifier path.  Its connection list is returned as packed
+  # nibbles (0x08060302 -> 2,0,3,0,6,0,8,0 -> candidates 0x02, 0x03, 0x06, 0x08).
+  # We cannot know which converter macOS is currently streaming on, so try them all.
+  echo "--- 0x17 的连接列表与当前选择 ---"
+  LIST=$("$ALC" 0x17 GET_CONNECT_LIST 0 2>&1 | tail -1)
+  SEL=$("$ALC" 0x17 GET_CONNECT_SEL 0 2>&1 | tail -1)
+  echo "    connect list = $LIST   当前选中索引 = $SEL"
+  # The response packs node IDs as bytes (0x08060302 -> 0x02,0x03,0x06,0x08, lowest
+  # byte first); SET_CONNECT_SEL wants the position in that list.
+  CANDIDATES=$(printf '%s' "$LIST" | sed 's/^0x//' | awk '{
+      s=$0; if (length(s)%2) s="0" s; n=length(s);
+      for (i=n; i>=2; i-=2) { b=substr(s,i-1,2); if (b!="00") printf "%d ", (n-i)/2 }
+  }')
+  echo "    候选索引（去掉 0 项）= ${CANDIDATES:-无}"
+  echo "--- 逐个候选做「接通 + 打开引脚 + EAPD + 解除静音」，每步之间请听一下 ---"
+  for idx in $CANDIDATES; do
+    echo "=== 候选索引 $idx ==="
+    "$ALC" 0x17 SET_CONNECT_SEL "$idx" 2>&1 | tail -1
+    "$ALC" 0x17 SET_PIN_WIDGET_CONTROL 0x40 2>&1 | tail -1
+    "$ALC" 0x17 SET_EAPD_BTLENABLE 0x02 2>&1 | tail -1
+    "$ALC" 0x17 SET_AMP_GAIN_MUTE 0x807F 2>&1 | tail -1
+    "$ALC" 0x17 SET_AMP_GAIN_MUTE 0x007F 2>&1 | tail -1
+    printf '    回读: sel=%s pin=%s amp=%s\n' \
+      "$("$ALC" 0x17 GET_CONNECT_SEL 0 2>&1 | tail -1)" \
+      "$("$ALC" 0x17 GET_PIN_WIDGET_CONTROL 0 2>&1 | tail -1)" \
+      "$("$ALC" 0x17 GET_AMP_GAIN_MUTE 0x8000 2>&1 | tail -1)"
+    echo "    >>> 现在播一段音乐听 3~5 秒：低音/音量有变化吗？（按回车继续下一个候选）"
+    read -r _
+  done
+  echo "--- 别忘了同时确认：这一步做的时候，功放本身是「已上电」状态才有效 ---"
+  echo "    （用 备用 config\\config-写入模式-aw88399rw.plist 启动时，kext 会在开机 5 秒后把功放上电）"
+  ioreg -l -w0 -p IOService 2>/dev/null | grep -A14 'AW88399Fixup' | grep -E 'ReadOnly|Applied|ChipId|BringUpStage|SysCtrl|I2sCtrl' | sed 's/^/    /'
 fi
 echo "--- 音频设备 ---"
 system_profiler SPAudioDataType 2>/dev/null | head -25
