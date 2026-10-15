@@ -50,3 +50,16 @@ First public scaffold (milestone M0/M1a).
 ### Added
 - IORegistry diagnostics for `SYSCTRL2` (volume) and `I2SCTRL1..3` (ASP/I2S receiver
   configuration), which is where the "amplifier gets no audio" question will be answered.
+
+## [0.1.4] - 2026-10-15
+
+### Fixed
+- **Boot-args are readable again.** `PE_parse_boot_argn("boot-args", ...)` returns false on
+  this machine, so 0.1.3 missed `-aw88399rw` and stayed read-only even in write mode (the
+  log showed `ReadOnly = Yes` / `Applied = No` with `-aw88399rw` on the command line).
+  `PE_get_default("boot-args")` is tried first now, with the old call as a fallback.
+- Mode selection: `-aw88399rw` always wins; read-only only when nothing asks for writes.
+
+### Added
+- The kext publishes `BootArgsSeenByKext`, `ReadOnlyRequested` and `WriteRequested`, so the
+  next log proves what it actually read instead of us guessing.

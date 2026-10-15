@@ -166,6 +166,15 @@ else
   kmutil showloaded 2>/dev/null | grep -i 'AW88399Fixup' || echo "(仍然没加载)"
   echo "--- IORegistry 节点（BringUpStage / ChipId / Applied 就在这里）---"
   ioreg -l -w0 -p IOService 2>/dev/null | grep -i -A25 'AW88399Fixup' | head -45 || echo "(没有节点)"
+echo "--- 模式校验（这一项决定第 5 节的 codec 测试有没有意义）---"
+MODE=$(ioreg -l -w0 -p IOService 2>/dev/null | grep -A20 'AW88399Fixup' | grep -E '"ReadOnly"|"Applied"|"BootArgsSeenByKext"' | tr -d ' ' | paste -sd' ' -)
+echo "    $MODE"
+case "$MODE" in
+  *'"ReadOnly"=Yes'*)
+    echo "    ⚠️ 当前是只读模式：功放没上电，第 5 节的 codec 路由轮换不会有效果。"
+    echo "       请把 备用 config/config-写入模式-aw88399rw.plist 覆盖成 EFI/OC/config.plist 后重启再跑。" ;;
+  *) echo "    ✅ 写入模式（功放应已上电）" ;;
+esac
   echo "--- 最近 3 分钟 AW88399 的内核日志 ---"
   log show --last 3m --info --debug --predicate 'process == "kernel"' 2>/dev/null | grep -i 'AW88399' | tail -40 || echo "(无)"
 fi

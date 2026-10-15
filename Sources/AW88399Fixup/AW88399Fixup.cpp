@@ -35,19 +35,32 @@ constexpr UInt8 kRegI2sCtrl2 = AW88399_I2SCTRL2_REG;  // 0x07
 constexpr UInt8 kRegI2sCtrl3 = AW88399_I2SCTRL3_REG;  // 0x08
 constexpr UInt16 kChipId = AW88399_CHIP_ID;           // 0x2183
 
-bool bootArgPresent(const char *name)
+// Fetch the whole boot-args string.  PE_get_default() is the documented way; the
+// PE_parse_boot_argn("boot-args", ...) trick returns false on this machine (which is why
+// 0.1.3 ran read-only despite -aw88399rw being present), so both are tried.
+bool bootArgsString(char *buffer, size_t size)
 {
-    return PE_parse_boot_argn(name, nullptr, 0) != FALSE;
+    if (size == 0) {
+        return false;
+    }
+    buffer[0] = '\0';
+    if (PE_get_default("boot-args", buffer, (unsigned int)size) != FALSE && buffer[0] != '\0') {
+        return true;
+    }
+    if (PE_parse_boot_argn("boot-args", buffer, (int)size) != FALSE && buffer[0] != '\0') {
+        return true;
+    }
+    return false;
 }
 
-// PE_parse_boot_argn() matches by prefix, so "-aw88399ro" also satisfies a query for
-// "aw88399rw" (0.1.2 shipped with that bug and wrote to the amplifier even though
-// -aw88399ro was set).  Read the boot-args string and match whole tokens instead.
-// Only libkern's strlen/strncmp are available in the kernel - strstr is not declared.
+// PE_parse_boot_argn() matches by prefix, so a query for "aw88399rw" also matches
+// "-aw88399ro" (0.1.2 shipped with that bug and wrote to the amplifier even though
+// -aw88399ro was set).  Match whole tokens by hand instead; only libkern's
+// strlen/strncmp are available in the kernel (no strstr).
 bool bootArgsContain(const char *flag)
 {
-    char args[1024] = {0};
-    if (!PE_parse_boot_argn("boot-args", args, sizeof(args))) {
+    char args[1024];
+    if (!bootArgsString(args, sizeof(args))) {
         return false;
     }
     size_t flagLength = strlen(flag);
@@ -74,6 +87,11 @@ bool bootArgUInt32(const char *name, UInt32 *value)
     return PE_parse_boot_argn(name, value, sizeof(*value)) != FALSE;
 }
 
+bool bootArgFlag(const char *name)
+{
+    return PE_parse_boot_argn(name, nullptr, 0) != FALSE;
+}
+
 } // namespace
 
 bool AW88399Fixup::start(IOService *provider)
@@ -82,12 +100,14 @@ bool AW88399Fixup::start(IOService *provider)
         return false;
     }
 
+    // Mode: read-only only when it is asked for explicitly (-aw88399ro) or when nothing
+    // asks for writes.  -aw88399rw always wins, so the "write mode" config works even
+    // when both flags somehow end up on the command line.
+    mWriteRequested = bootArgsContain("aw88399rw");
+    mReadOnlyRequested = bootArgsContain("aw88399ro");
+    mReadOnly = !mWriteRequested;
     mDebug = bootArgsContain("aw88399dbg");
-    // Writes are opt-in: without -aw88399rw this kext only reads registers, no matter
-    // what else is on the command line.  (-aw88399ro is accepted as an explicit
-    // read-only request and simply is the default.)
-    mReadOnly = !bootArgsContain("aw88399rw");
-    if (bootArgPresent("aw88399nodsp")) {
+    if (bootArgFlag("aw88399nodsp")) {
         mForceNoDsp = true;
     }
     UInt32 delay = 0;
@@ -128,7 +148,16 @@ bool AW88399Fixup::start(IOService *provider)
 
     mStage = "waiting";
     publishState();
-    logf("started: readOnly=%d noDsp=%d delay=%us", mReadOnly ? 1 : 0,
+    {
+        char raw[200];
+        if (bootArgsString(raw, sizeof(raw))) {
+            logf("boot-args seen by kext: %s", raw);
+        } else {
+            logf("could not read the boot-args string at all");
+        }
+    }
+    logf("started: readOnly=%d (roFlag=%d rwFlag=%d) noDsp=%d delay=%us",
+         mReadOnly ? 1 : 0, mReadOnlyRequested ? 1 : 0, mWriteRequested ? 1 : 0,
          mForceNoDsp ? 1 : 0, mDelaySec);
     mTimer->setTimeoutMS(mDelaySec * 1000);
     return true;
@@ -303,7 +332,15 @@ void AW88399Fixup::publishState()
     setProperty("ProbeOk", mProbeOk);
     setProperty("Applied", mApplied);
     setProperty("ReadOnly", mReadOnly);
+    setProperty("ReadOnlyRequested", mReadOnlyRequested);
+    setProperty("WriteRequested", mWriteRequested);
     setProperty("NoDsp", mForceNoDsp);
+    {
+        char raw[200];
+        if (bootArgsString(raw, sizeof(raw))) {
+            setProperty("BootArgsSeenByKext", raw);
+        }
+    }
     setProperty("SysCtrlBefore", (UInt32)mSysCtrlBefore, 32);
     setProperty("SysCtrlAfter", (UInt32)mSysCtrlAfter, 32);
     setProperty("SysCtrl2", (UInt32)mSysCtrl2, 32);

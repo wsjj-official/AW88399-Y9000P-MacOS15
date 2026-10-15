@@ -51,6 +51,8 @@ private:
     bool mReadOnly{false};
     bool mForceNoDsp{true};
     UInt32 mDelaySec{5};
+    bool mWriteRequested{false};
+    bool mReadOnlyRequested{false};
 
     UInt16 mChipId{0};
     UInt16 mSysCtrlBefore{0};
