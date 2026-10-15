@@ -184,6 +184,24 @@ if [ -n "$ALC" ]; then
       "$("$ALC" "$nid" GET_PIN_WIDGET_CONTROL 0 2>&1 | tail -1)" \
       "$("$ALC" "$nid" GET_AMP_GAIN_MUTE 0x8000 2>&1 | tail -1)"
   done
+  echo "--- 0x17 的连接列表（找 DAC 0x02 的索引）---"
+  "$ALC" 0x17 GET_CONNECT_LIST 0 2>&1 | tail -1
+  echo "--- 把 0x17（=低音/功放那一路）按 Linux 的做法接回 DAC 0x02 并打开 ---"
+  echo "    （Linux 侧 alc287_fixup_legion_16iax_aw88399 是空函数，但 AudioLegion 补丁"
+  echo "      明确写了：0x17 原来接在没有音量控制的 DAC 0x06 上，要改接 DAC 0x02）"
+  echo "    请先输入 DAC 0x02 在连接列表里的索引（上面那行的第几个，从 0 数；不确定就回车跳过）"
+  read -r SEL
+  if [ -n "$SEL" ]; then
+    "$ALC" 0x17 SET_CONNECT_SEL "$SEL" 2>&1 | tail -1
+  fi
+  "$ALC" 0x17 SET_PIN_WIDGET_CONTROL 0x40 2>&1 | tail -1
+  "$ALC" 0x17 SET_EAPD_BTLENABLE 0x02 2>&1 | tail -1
+  "$ALC" 0x17 SET_AMP_GAIN_MUTE 0x807F 2>&1 | tail -1
+  echo "--- 再读一遍 ---"
+  printf '  NID 0x17: pin=%s amp=%s\n' \
+    "$("$ALC" 0x17 GET_PIN_WIDGET_CONTROL 0 2>&1 | tail -1)" \
+    "$("$ALC" 0x17 GET_AMP_GAIN_MUTE 0x8000 2>&1 | tail -1)"
+  echo "  音频此刻请播一下音乐，听听低音/音量有没有变化。"
 fi
 echo "--- 音频设备 ---"
 system_profiler SPAudioDataType 2>/dev/null | head -25

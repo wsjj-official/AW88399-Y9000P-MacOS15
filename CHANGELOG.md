@@ -38,3 +38,15 @@ First public scaffold (milestone M0/M1a).
   for both the failed OpenCore injection and the `KMErrorDomain Code=71` manual load.
 - CI now ad-hoc signs the kext (`codesign --force --deep -s -`) so a signature is present
   even though `SecureBootModel` is disabled.
+
+## [0.1.3] - 2026-10-15
+
+### Fixed
+- **Writes are now opt-in.** `PE_parse_boot_argn()` matches by prefix, so `-aw88399ro`
+  made `aw88399rw` look present and 0.1.2 ran in write mode (visible as `ReadOnly = No` in
+  the IORegistry) even though the boot-args asked for read-only.  Boot-args are now read as
+  one string and matched as whole tokens; without `-aw88399rw` the kext only reads.
+
+### Added
+- IORegistry diagnostics for `SYSCTRL2` (volume) and `I2SCTRL1..3` (ASP/I2S receiver
+  configuration), which is where the "amplifier gets no audio" question will be answered.

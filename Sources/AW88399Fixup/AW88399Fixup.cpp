@@ -40,6 +40,29 @@ bool bootArgPresent(const char *name)
     return PE_parse_boot_argn(name, nullptr, 0) != FALSE;
 }
 
+// PE_parse_boot_argn() matches by prefix, so "-aw88399ro" also satisfies a query for
+// "aw88399rw" (0.1.2 shipped with that bug and wrote to the amplifier even though
+// -aw88399ro was set).  Read the boot-args string and match whole tokens instead.
+bool bootArgsContain(const char *flag)
+{
+    char args[1024] = {0};
+    if (!PE_parse_boot_argn("boot-args", args, sizeof(args))) {
+        return false;
+    }
+    size_t length = strlen(flag);
+    const char *cursor = args;
+    while ((cursor = strstr(cursor, flag)) != nullptr) {
+        bool leftOk = (cursor == args) || (cursor[-1] == ' ') || (cursor[-1] == '-');
+        char next = cursor[length];
+        bool rightOk = (next == '\0') || (next == ' ');
+        if (leftOk && rightOk) {
+            return true;
+        }
+        cursor += length;
+    }
+    return false;
+}
+
 bool bootArgUInt32(const char *name, UInt32 *value)
 {
     return PE_parse_boot_argn(name, value, sizeof(*value)) != FALSE;
@@ -53,11 +76,11 @@ bool AW88399Fixup::start(IOService *provider)
         return false;
     }
 
-    mDebug = bootArgPresent("aw88399dbg");
-    // -aw88399ro runs the bring-up without writing anything.  -aw88399rw overrides it,
-    // which matters when the kext is loaded by hand (kextload) instead of at boot: the
-    // boot-args of the running system cannot be changed without a reboot.
-    mReadOnly = bootArgPresent("aw88399ro") && !bootArgPresent("aw88399rw");
+    mDebug = bootArgsContain("aw88399dbg");
+    // Writes are opt-in: without -aw88399rw this kext only reads registers, no matter
+    // what else is on the command line.  (-aw88399ro is accepted as an explicit
+    // read-only request and simply is the default.)
+    mReadOnly = !bootArgsContain("aw88399rw");
     if (bootArgPresent("aw88399nodsp")) {
         mForceNoDsp = true;
     }
@@ -123,10 +146,19 @@ void AW88399Fixup::runBringUp()
 
     // Read-only diagnostics: record the state the chip is in right now, whatever it is.
     dumpRegister("SYSCTRL", kRegSysCtrl);
-    dumpRegister("SYSCTRL2", kRegSysCtrl2);
-    dumpRegister("I2SCTRL1", kRegI2sCtrl1);
-    dumpRegister("I2SCTRL2", kRegI2sCtrl2);
-    dumpRegister("I2SCTRL3", kRegI2sCtrl3);
+    if (readReg(kRegSysCtrl2, &mSysCtrl2)) {
+        logf("SYSCTRL2 (0x%02x) = 0x%04x   <- volume field lives here", kRegSysCtrl2, mSysCtrl2);
+    }
+    if (readReg(kRegI2sCtrl1, &mI2sCtrl1)) {
+        logf("I2SCTRL1 (0x%02x) = 0x%04x", kRegI2sCtrl1, mI2sCtrl1);
+    }
+    if (readReg(kRegI2sCtrl2, &mI2sCtrl2)) {
+        logf("I2SCTRL2 (0x%02x) = 0x%04x", kRegI2sCtrl2, mI2sCtrl2);
+    }
+    if (readReg(kRegI2sCtrl3, &mI2sCtrl3)) {
+        logf("I2SCTRL3 (0x%02x) = 0x%04x   <- I2STXEN / ASP config", kRegI2sCtrl3, mI2sCtrl3);
+    }
+    publishState();
 
     if (mReadOnly) {
         mStage = "read-only-done";
@@ -268,6 +300,10 @@ void AW88399Fixup::publishState()
     setProperty("NoDsp", mForceNoDsp);
     setProperty("SysCtrlBefore", (UInt32)mSysCtrlBefore, 32);
     setProperty("SysCtrlAfter", (UInt32)mSysCtrlAfter, 32);
+    setProperty("SysCtrl2", (UInt32)mSysCtrl2, 32);
+    setProperty("I2sCtrl1", (UInt32)mI2sCtrl1, 32);
+    setProperty("I2sCtrl2", (UInt32)mI2sCtrl2, 32);
+    setProperty("I2sCtrl3", (UInt32)mI2sCtrl3, 32);
 }
 
 void AW88399Fixup::logf(const char *fmt, ...)

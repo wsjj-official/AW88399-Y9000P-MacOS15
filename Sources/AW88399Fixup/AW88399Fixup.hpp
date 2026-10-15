@@ -55,6 +55,10 @@ private:
     UInt16 mChipId{0};
     UInt16 mSysCtrlBefore{0};
     UInt16 mSysCtrlAfter{0};
+    UInt16 mSysCtrl2{0};
+    UInt16 mI2sCtrl1{0};
+    UInt16 mI2sCtrl2{0};
+    UInt16 mI2sCtrl3{0};
     bool mProbeOk{false};
     bool mApplied{false};
     const char *mStage{"init"};
